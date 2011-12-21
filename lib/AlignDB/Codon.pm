@@ -1,4 +1,5 @@
 package AlignDB::Codon;
+
 # ABSTRACT: translate sequences and calculate Dn/Ds
 
 use Moose;
@@ -406,14 +407,16 @@ sub comp_codons {
     # check codons
     for ( $cod1, $cod2 ) {
         if ( !exists $codon2aa->{$_} ) {
-            croak Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Wrong codon\n";
+            carp Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Wrong codon\n";
+            return ( 0, 0 );
         }
     }
 
     # check codon position
     if ( defined $pos ) {
         if ( none { $_ == $pos } ( 0 .. 2 ) ) {
-            croak Dump( { pos => $pos } ), "Wrong codon position\n";
+            carp Dump( { pos => $pos } ), "Wrong codon position\n";
+            return ( 0, 0 );
         }
     }
 
