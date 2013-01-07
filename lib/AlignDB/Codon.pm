@@ -3,7 +3,6 @@ package AlignDB::Codon;
 # ABSTRACT: translate sequences and calculate Dn/Ds
 
 use Moose;
-use Carp;
 
 use Bio::Tools::CodonTable;
 use List::MoreUtils qw(none);
@@ -162,7 +161,7 @@ sub change_codon_table {
     my $id_set = AlignDB::IntSpan->new("1-6,9-16,21");
 
     if ( not defined $id ) {
-        croak "codon table id is not defined\n";
+        confess "codon table id is not defined\n";
     }
     elsif ( $id_set->contain($id) ) {
         my $codon_table = Bio::Tools::CodonTable->new( -id => $id );
@@ -176,7 +175,7 @@ sub change_codon_table {
         $self->{syn_changes} = $self->_syn_changes();
     }
     else {
-        croak "codon table id should be in range of $id_set\n";
+        confess "codon table id should be in range of $id_set\n";
     }
 
     return;
@@ -240,7 +239,7 @@ sub convert_123 {
             $converted .= $three_of->{$aa_code};
         }
         else {
-            carp "Wrong single-letter amino acid code [$aa_code]!\n";
+            warn "Wrong single-letter amino acid code [$aa_code]!\n";
             $converted .= ' ' x 3;
         }
     }
@@ -274,7 +273,7 @@ sub convert_321 {
             $converted .= $one_of->{$aa_code};
         }
         else {
-            carp "Wrong three-letter amino acid code [$aa_code]!\n";
+            warn "Wrong three-letter amino acid code [$aa_code]!\n";
             $converted .= ' ' x 3;
         }
 
@@ -407,7 +406,7 @@ sub comp_codons {
     # check codons
     for ( $cod1, $cod2 ) {
         if ( !exists $codon2aa->{$_} ) {
-            carp Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Wrong codon\n";
+            warn Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Wrong codon\n";
             return ( 0, 0 );
         }
     }
@@ -415,7 +414,7 @@ sub comp_codons {
     # check codon position
     if ( defined $pos ) {
         if ( none { $_ == $pos } ( 0 .. 2 ) ) {
-            carp Dump( { pos => $pos } ), "Wrong codon position\n";
+            warn Dump( { pos => $pos } ), "Wrong codon position\n";
             return ( 0, 0 );
         }
     }
@@ -539,7 +538,7 @@ sub count_diffs {
     my @diffs;    # store diff base position
 
     if ( length $cod1 != 3 or length $cod2 != 3 ) {
-        carp Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Codon length error\n";
+        warn Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Codon length error\n";
         return ( $cnt, $return_pos );
     }
 
@@ -572,7 +571,7 @@ sub translate {
     # check $frame
     if ( defined $frame ) {
         if ( none { $_ == $frame } ( 0 .. 2 ) ) {
-            croak Dump( { frame => $frame } ), "Wrong frame\n";
+            confess Dump( { frame => $frame } ), "Wrong frame\n";
         }
     }
     else {
