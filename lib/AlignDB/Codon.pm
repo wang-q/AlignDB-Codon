@@ -1,88 +1,20 @@
 package AlignDB::Codon;
-
-# ABSTRACT: translate sequences and calculate Dn/Ds
-
 use Moose;
-
 use Bio::Tools::CodonTable;
 use List::MoreUtils qw(none);
-
 use YAML qw(Dump Load DumpFile LoadFile);
-
 use AlignDB::IntSpan;
 
-=attr one2three
+our $VERSION = '1.0.0';
 
-lookup hash for one-letter aa names to three-letter ones, isa HashRef
-
-=cut
-
-has 'one2three' => ( is => 'ro', isa => 'HashRef', );
-
-=attr three2one
-
-lookup hash for three-letter aa names to one-letter ones, isa HashRef
-
-=cut
-
-has 'three2one' => ( is => 'ro', isa => 'HashRef', );
-
-=attr codons
-
-all codons, isa ArrayRef
-
-=cut
-
-has 'codons' => ( is => 'ro', isa => 'ArrayRef', );
-
-=attr codon2aa
-
-lookup hash for codons to aa, isa HashRef
-
-=cut
-
-has 'codon2aa' => ( is => 'ro', isa => 'HashRef', );
-
-=attr table_id
-
-codon table id, in Bio::Tools::CodonTable
-
-=cut
-
-has 'table_id' => ( is => 'ro', isa => 'Int', );
-
-=attr table_name
-
-codon table name, in Bio::Tools::CodonTable
-
-=cut
-
-has 'table_name' => ( is => 'ro', isa => 'Str', );
-
-=attr codon_table
-
-isa Bio::Tools::CodonTable Object
-
-=cut
-
+has 'one2three'   => ( is => 'ro', isa => 'HashRef', );
+has 'three2one'   => ( is => 'ro', isa => 'HashRef', );
+has 'codons'      => ( is => 'ro', isa => 'ArrayRef', );
+has 'codon2aa'    => ( is => 'ro', isa => 'HashRef', );
+has 'table_id'    => ( is => 'ro', isa => 'Int', );
+has 'table_name'  => ( is => 'ro', isa => 'Str', );
 has 'codon_table' => ( is => 'ro', isa => 'Object', );
-
-=attr syn_sites
-
-lookup hash for the number of synonymous changes per codon, isa HashRef
-
-=cut
-
-has 'syn_sites' => ( is => 'ro', isa => 'HashRef', );
-
-=attr syn_changes
-
-lookup hash of all pairwise combinations of codons differing by 1
-1 = synonymous, 0 = non-synonymous, -1 = stop,
-isa HashRef
- 
-=cut
-
+has 'syn_sites'   => ( is => 'ro', isa => 'HashRef', );
 has 'syn_changes' => ( is => 'ro', isa => 'HashRef', );
 
 sub BUILD {
@@ -135,20 +67,6 @@ sub _load_aa_code {
 
     return ( \%one2three, \%three2one );
 }
-
-=method change_codon_table
-
-      Usage : $obj->change_codon_table(2);
-    Purpose : change used codon table and recalc all attributes
-    Returns : none
- Parameters : a legal codon table id
-     Throws : codon table id is not defined
-            : or
-            : codon table id should be in range of 1-6,9-16,21
-   Comments : none
-   See Also : n/a
-
-=cut
 
 sub change_codon_table {
     my $self = shift;
@@ -213,18 +131,6 @@ sub _make_codons {
     return @codons;
 }
 
-=method convert_123
-
-      Usage : my $three_format = $obj->convert_123('ARN');
-    Purpose : convert aa code from one-letter to three-letter
-    Returns : Str
- Parameters : IUPAC one-letter amino acid string
-     Throws : Given characters not in IUPAC table
-   Comments : none
-   See Also : convert_321
-
-=cut
-
 sub convert_123 {
     my $self    = shift;
     my $peptide = shift;
@@ -245,18 +151,6 @@ sub convert_123 {
     }
     return $converted;
 }
-
-=method convert_321
-
-      Usage : my $one_format = $obj->convert_321('AlaArgAsn');
-    Purpose : convert aa code from three-letter to one-letter
-    Returns : Str
- Parameters : IUPAC three-letter amino acid string
-     Throws : Given characters not in IUPAC table
-   Comments : none
-   See Also : convert_123
-
-=cut
 
 sub convert_321 {
     my $self    = shift;
@@ -368,24 +262,6 @@ sub _syn_sites {
     return \%final_results;
 }
 
-=method comp_codons
-
-      Usage : my ($syn, $nsy) = $obj->comp_codons('TTT', 'GTA');
-            : or
-            : my ($syn1, $nsy1) = $obj->comp_codons('TTT', 'GTA', 1);
-    Purpose : compares 2 codons to find the number of synonymous and
-            :   non-synonymous mutations between them
-            : if the third parameter is given, this method will
-            :   return syn&nsy at this position
-    Returns : (Num, Num)
- Parameters : Codon, Codon, Codon Position (optional, in 0 .. 2)
-     Throws : Wrong codon
-            : Wrong codon position
-   Comments : none
-   See Also : n/a
-
-=cut
-
 sub comp_codons {
     my $self = shift;
     my $cod1 = shift;
@@ -428,14 +304,7 @@ sub comp_codons {
             2 => [ [ 0, 1 ], [ 1, 0 ] ],
             },
         3 =>    # all need to be altered
-            [
-            [ 0, 1, 2 ],
-            [ 1, 0, 2 ],
-            [ 0, 2, 1 ],
-            [ 1, 2, 0 ],
-            [ 2, 0, 1 ],
-            [ 2, 1, 0 ],
-            ],
+            [ [ 0, 1, 2 ], [ 1, 0, 2 ], [ 0, 2, 1 ], [ 1, 2, 0 ], [ 2, 0, 1 ], [ 2, 1, 0 ], ],
     );
 
     my ( $diff_cnt, $codon_pos ) = $self->count_diffs( $cod1, $cod2 );
@@ -589,19 +458,6 @@ sub translate {
     return $peptide;
 }
 
-=method is_start_codon
-
-      Usage : my $bool = $obj->is_start_codon('ATG')
-    Purpose : returns true (1) for codons that can be used as a
-            :   translation start, false (0) for others.
-    Returns : boolean
- Parameters : Codon
-     Throws : no exceptions
-   Comments : none
-   See Also : n/a
-
-=cut
-
 sub is_start_codon {
     my $self = shift;
     my $cod  = shift;
@@ -611,19 +467,6 @@ sub is_start_codon {
     return $codon_table->is_start_codon($cod);
 }
 
-=method is_ter_codon
-
-      Usage : my $bool = $obj->is_ter_codon('GAA')
-    Purpose : returns true (1) for codons that can be used as a
-            :   translation terminator, false (0) for others.
-    Returns : boolean
- Parameters : Codon
-     Throws : no exceptions
-   Comments : none
-   See Also : n/a
-
-=cut
-
 sub is_ter_codon {
     my $self = shift;
     my $cod  = shift;
@@ -632,19 +475,6 @@ sub is_ter_codon {
 
     return $codon_table->is_ter_codon($cod);
 }
-
-=method is_unknown_codon
-
-      Usage : my $bool = $obj->is_unknown_codon('GAJ')
-    Purpose : returns true (1) for codons that are valid,
-            :   true (1) for others.
-    Returns : boolean
- Parameters : Codon
-     Throws : no exceptions
-   Comments : none
-   See Also : n/a
-
-=cut
 
 sub is_unknown_codon {
     my $self = shift;
@@ -659,9 +489,153 @@ sub is_unknown_codon {
 
 __END__
 
+
+=pod
+
+=encoding UTF-8
+
+=head1 NAME
+
+AlignDB::Codon - translate sequences and calculate Dn/Ds
+
 =head1 DESCRIPTION
 
-AlignDB::Codon is a part of AlignDB package. It provides methods to translate
-sequences and calculate Dn/Ds with different codon tables.
+AlignDB::Codon provides methods to translate sequences and calculate Dn/Ds with different codon tables.
 
 For more information, see L<AlignDB>.
+
+=head1 ATTRIBUTES
+
+=head2 one2three
+
+lookup hash for one-letter aa names to three-letter ones, isa HashRef
+
+=head2 three2one
+
+lookup hash for three-letter aa names to one-letter ones, isa HashRef
+
+=head2 codons
+
+all codons, isa ArrayRef
+
+=head2 codon2aa
+
+lookup hash for codons to aa, isa HashRef
+
+=head2 table_id
+
+codon table id, in Bio::Tools::CodonTable
+
+=head2 table_name
+
+codon table name, in Bio::Tools::CodonTable
+
+=head2 codon_table
+
+isa Bio::Tools::CodonTable Object
+
+=head2 syn_sites
+
+lookup hash for the number of synonymous changes per codon, isa HashRef
+
+=head2 syn_changes
+
+lookup hash of all pairwise combinations of codons differing by 1
+1 = synonymous, 0 = non-synonymous, -1 = stop,
+isa HashRef
+
+=head1 METHODS
+
+=head2 change_codon_table
+
+      Usage : $obj->change_codon_table(2);
+    Purpose : change used codon table and recalc all attributes
+    Returns : none
+ Parameters : a legal codon table id
+     Throws : codon table id is not defined
+            : or
+            : codon table id should be in range of 1-6,9-16,21
+   Comments : none
+   See Also : n/a
+
+=head2 convert_123
+
+      Usage : my $three_format = $obj->convert_123('ARN');
+    Purpose : convert aa code from one-letter to three-letter
+    Returns : Str
+ Parameters : IUPAC one-letter amino acid string
+     Throws : Given characters not in IUPAC table
+   Comments : none
+   See Also : convert_321
+
+=head2 convert_321
+
+      Usage : my $one_format = $obj->convert_321('AlaArgAsn');
+    Purpose : convert aa code from three-letter to one-letter
+    Returns : Str
+ Parameters : IUPAC three-letter amino acid string
+     Throws : Given characters not in IUPAC table
+   Comments : none
+   See Also : convert_123
+
+=head2 comp_codons
+
+      Usage : my ($syn, $nsy) = $obj->comp_codons('TTT', 'GTA');
+            : or
+            : my ($syn1, $nsy1) = $obj->comp_codons('TTT', 'GTA', 1);
+    Purpose : compares 2 codons to find the number of synonymous and
+            :   non-synonymous mutations between them
+            : if the third parameter is given, this method will
+            :   return syn&nsy at this position
+    Returns : (Num, Num)
+ Parameters : Codon, Codon, Codon Position (optional, in 0 .. 2)
+     Throws : Wrong codon
+            : Wrong codon position
+   Comments : none
+   See Also : n/a
+
+=head2 is_start_codon
+
+      Usage : my $bool = $obj->is_start_codon('ATG')
+    Purpose : returns true (1) for codons that can be used as a
+            :   translation start, false (0) for others.
+    Returns : boolean
+ Parameters : Codon
+     Throws : no exceptions
+   Comments : none
+   See Also : n/a
+
+=head2 is_ter_codon
+
+      Usage : my $bool = $obj->is_ter_codon('GAA')
+    Purpose : returns true (1) for codons that can be used as a
+            :   translation terminator, false (0) for others.
+    Returns : boolean
+ Parameters : Codon
+     Throws : no exceptions
+   Comments : none
+   See Also : n/a
+
+=head2 is_unknown_codon
+
+      Usage : my $bool = $obj->is_unknown_codon('GAJ')
+    Purpose : returns true (1) for codons that are valid,
+            :   true (1) for others.
+    Returns : boolean
+ Parameters : Codon
+     Throws : no exceptions
+   Comments : none
+   See Also : n/a
+
+=head1 AUTHOR
+
+Qiang Wang <wang-q@outlook.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2008 by Qiang Wang.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
