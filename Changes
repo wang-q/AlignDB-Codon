@@ -1,8 +1,12 @@
-Revision history for {{$dist->name}}
+Revision history for AlignDB-Codon
+
+{{$NEXT}}
+
+1.0.0  2016-01-15 15:32:00 CST
+    - Switch to Dist::Milla
 
 0.01   Thu Nov 27 17:48:34 2008
-       Switch to Dist::Zilla
+    - Switch to Dist::Zilla
 
 0.001  Tue Jan  8 03:54:56 2008
-       Initial release.
-
+    - Initial release.
