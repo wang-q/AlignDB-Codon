@@ -81,7 +81,7 @@ sub change_codon_table {
     if ( not defined $id ) {
         confess "codon table id is not defined\n";
     }
-    elsif ( $id_set->contain($id) ) {
+    elsif ( $id_set->contains($id) ) {
         my $codon_table = Bio::Tools::CodonTable->new( -id => $id );
 
         $self->{table_id}    = $id;
