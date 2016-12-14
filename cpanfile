@@ -1,7 +1,7 @@
 requires 'Moose';
 requires 'Bio::Tools::CodonTable';
 requires 'List::MoreUtils';
-requires 'YAML';
+requires 'YAML::Syck';
 requires 'AlignDB::IntSpan';
 requires 'perl', '5.010001';
 

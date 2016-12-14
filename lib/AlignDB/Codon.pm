@@ -1,9 +1,11 @@
 package AlignDB::Codon;
 use Moose;
-use Bio::Tools::CodonTable;
-use List::MoreUtils qw(none);
-use YAML qw(Dump Load DumpFile LoadFile);
+use Carp;
+
 use AlignDB::IntSpan;
+use Bio::Tools::CodonTable;
+use List::MoreUtils::PP;
+use YAML::Syck;
 
 our $VERSION = '1.0.0';
 
@@ -11,7 +13,7 @@ has 'one2three'   => ( is => 'ro', isa => 'HashRef', );
 has 'three2one'   => ( is => 'ro', isa => 'HashRef', );
 has 'codons'      => ( is => 'ro', isa => 'ArrayRef', );
 has 'codon2aa'    => ( is => 'ro', isa => 'HashRef', );
-has 'table_id'    => ( is => 'ro', isa => 'Int', );
+has 'table_id'    => ( is => 'ro', isa => 'Int', default => 1, );
 has 'table_name'  => ( is => 'ro', isa => 'Str', );
 has 'codon_table' => ( is => 'ro', isa => 'Object', );
 has 'syn_sites'   => ( is => 'ro', isa => 'HashRef', );
@@ -28,8 +30,7 @@ sub BUILD {
     my @codons = $self->_make_codons();
     $self->{codons} = \@codons;
 
-    my $table_id = $self->table_id() ? $self->table_id() : 1;
-    $self->change_codon_table($table_id);
+    $self->change_codon_table( $self->table_id );
 
     return;
 }
@@ -63,7 +64,7 @@ sub _load_aa_code {
         X   => 'Xaa',    # Any or unknown amino acid
         '*' => '***',    # Stop codon
     );
-    my %three2one = reverse %one2three;
+    my %three2one = reverse(%one2three);
 
     return ( \%one2three, \%three2one );
 }
@@ -79,7 +80,7 @@ sub change_codon_table {
     my $id_set = AlignDB::IntSpan->new("1-6,9-16,21");
 
     if ( not defined $id ) {
-        confess "codon table id is not defined\n";
+        Carp::confess "codon table id is not defined\n";
     }
     elsif ( $id_set->contains($id) ) {
         my $codon_table = Bio::Tools::CodonTable->new( -id => $id );
@@ -282,15 +283,15 @@ sub comp_codons {
     # check codons
     for ( $cod1, $cod2 ) {
         if ( !exists $codon2aa->{$_} ) {
-            warn Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Wrong codon\n";
+            Carp::confess YAML::Syck::Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Wrong codon\n";
             return ( 0, 0 );
         }
     }
 
     # check codon position
     if ( defined $pos ) {
-        if ( none { $_ == $pos } ( 0 .. 2 ) ) {
-            warn Dump( { pos => $pos } ), "Wrong codon position\n";
+        if ( List::MoreUtils::PP::none { $_ == $pos } ( 0 .. 2 ) ) {
+            Carp::confess YAML::Syck::Dump( { pos => $pos } ), "Wrong codon position\n";
             return ( 0, 0 );
         }
     }
@@ -407,7 +408,7 @@ sub count_diffs {
     my @diffs;    # store diff base position
 
     if ( length $cod1 != 3 or length $cod2 != 3 ) {
-        warn Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Codon length error\n";
+        Carp::confess YAML::Syck::Dump( { cod1 => $cod1, cod2 => $cod2 } ), "Codon length error\n";
         return ( $cnt, $return_pos );
     }
 
@@ -439,7 +440,7 @@ sub translate {
 
     # check $frame
     if ( defined $frame ) {
-        if ( none { $_ == $frame } ( 0 .. 2 ) ) {
+        if ( List::MoreUtils::PP::none { $_ == $frame } ( 0 .. 2 ) ) {
             confess Dump( { frame => $frame } ), "Wrong frame\n";
         }
     }
@@ -546,84 +547,51 @@ isa HashRef
 
 =head2 change_codon_table
 
-      Usage : $obj->change_codon_table(2);
-    Purpose : change used codon table and recalc all attributes
-    Returns : none
- Parameters : a legal codon table id
-     Throws : codon table id is not defined
-            : or
-            : codon table id should be in range of 1-6,9-16,21
-   Comments : none
-   See Also : n/a
+    $obj->change_codon_table(2);
+
+Change used codon table and recalc all attributes.
+
+Codon table id should be in range of 1-6,9-16,21.
 
 =head2 convert_123
 
-      Usage : my $three_format = $obj->convert_123('ARN');
-    Purpose : convert aa code from one-letter to three-letter
-    Returns : Str
- Parameters : IUPAC one-letter amino acid string
-     Throws : Given characters not in IUPAC table
-   Comments : none
-   See Also : convert_321
+    my $three_format = $obj->convert_123('ARN');
+
+Convert aa code from one-letter to three-letter
 
 =head2 convert_321
 
-      Usage : my $one_format = $obj->convert_321('AlaArgAsn');
-    Purpose : convert aa code from three-letter to one-letter
-    Returns : Str
- Parameters : IUPAC three-letter amino acid string
-     Throws : Given characters not in IUPAC table
-   Comments : none
-   See Also : convert_123
+    my $one_format = $obj->convert_321('AlaArgAsn');
+
+Convert aa code from three-letter to one-letter
 
 =head2 comp_codons
 
-      Usage : my ($syn, $nsy) = $obj->comp_codons('TTT', 'GTA');
-            : or
-            : my ($syn1, $nsy1) = $obj->comp_codons('TTT', 'GTA', 1);
-    Purpose : compares 2 codons to find the number of synonymous and
-            :   non-synonymous mutations between them
-            : if the third parameter is given, this method will
-            :   return syn&nsy at this position
-    Returns : (Num, Num)
- Parameters : Codon, Codon, Codon Position (optional, in 0 .. 2)
-     Throws : Wrong codon
-            : Wrong codon position
-   Comments : none
-   See Also : n/a
+    my ($syn, $nsy) = $obj->comp_codons('TTT', 'GTA');
+
+    my ($syn, $nsy) = $obj->comp_codons('TTT', 'GTA', 1);
+
+Compares 2 codons to find the number of synonymous and non-synonymous mutations between them.
+
+If the third parameter (in 0 .. 2) is given, this method will return syn&nsy at this position.
 
 =head2 is_start_codon
 
-      Usage : my $bool = $obj->is_start_codon('ATG')
-    Purpose : returns true (1) for codons that can be used as a
-            :   translation start, false (0) for others.
-    Returns : boolean
- Parameters : Codon
-     Throws : no exceptions
-   Comments : none
-   See Also : n/a
+    my $bool = $obj->is_start_codon('ATG')
+
+Returns true for codons that can be used as a translation start, false for others.
 
 =head2 is_ter_codon
 
-      Usage : my $bool = $obj->is_ter_codon('GAA')
-    Purpose : returns true (1) for codons that can be used as a
-            :   translation terminator, false (0) for others.
-    Returns : boolean
- Parameters : Codon
-     Throws : no exceptions
-   Comments : none
-   See Also : n/a
+    my $bool = $obj->is_ter_codon('GAA')
+
+Returns true for codons that can be used as a translation terminator, false for others.
 
 =head2 is_unknown_codon
 
-      Usage : my $bool = $obj->is_unknown_codon('GAJ')
-    Purpose : returns true (1) for codons that are valid,
-            :   true (1) for others.
-    Returns : boolean
- Parameters : Codon
-     Throws : no exceptions
-   Comments : none
-   See Also : n/a
+    my $bool = $obj->is_unknown_codon('GAJ')
+
+Returns true (1) for codons that are valid, true (1) for others.
 
 =head1 AUTHOR
 
