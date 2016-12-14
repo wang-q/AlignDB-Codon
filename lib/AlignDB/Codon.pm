@@ -502,8 +502,6 @@ AlignDB::Codon - translate sequences and calculate Dn/Ds
 
 AlignDB::Codon provides methods to translate sequences and calculate Dn/Ds with different codon tables.
 
-For more information, see L<AlignDB>.
-
 =head1 ATTRIBUTES
 
 =head2 one2three
