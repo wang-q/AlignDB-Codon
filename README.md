@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/wang-q/AlignDB-Codon.svg?branch=master)](https://travis-ci.org/wang-q/AlignDB-Codon) [![Coverage Status](http://codecov.io/github/wang-q/AlignDB-Codon/coverage.svg?branch=master)](https://codecov.io/github/wang-q/AlignDB-Codon?branch=master) [![MetaCPAN Release](https://badge.fury.io/pl/AlignDB-Codon.svg)](https://metacpan.org/release/AlignDB-Codon)
 # NAME
 
 AlignDB::Codon - translate sequences and calculate Dn/Ds

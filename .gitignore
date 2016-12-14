@@ -14,4 +14,6 @@ blib
 !META.json
 !LICENSE
 
+# IDE
 .komodotools
+.idea
