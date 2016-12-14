@@ -46,8 +46,8 @@
             "Bio::Tools::CodonTable" : "0",
             "List::MoreUtils" : "0",
             "Moose" : "0",
-            "YAML" : "0",
-            "perl" : "5.008001"
+            "YAML::Syck" : "0",
+            "perl" : "5.010001"
          }
       },
       "test" : {
