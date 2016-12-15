@@ -2,37 +2,22 @@
 use strict;
 use warnings;
 
-use Test::More tests => 66;
+use Test::More;
 
-BEGIN {
-    use_ok('AlignDB::Codon');
-}
+use AlignDB::Codon;
 
-# id <=> name
-{
+{    # id <=> name
 
     # all translation tables in Bio::Tools::CodonTable
     my @NAMES =    #id
         (
-        'Standard',                                                                      # 1
-        'Vertebrate Mitochondrial',                                                      # 2
-        'Yeast Mitochondrial',                                                           # 3
-        'Mold, Protozoan, and Coelenterate Mitochondrial and Mycoplasma/Spiroplasma',    # 4
-        'Invertebrate Mitochondrial',                                                    # 5
-        'Ciliate, Dasycladacean and Hexamita Nuclear',                                   # 6
-        '', '',
-        'Echinoderm and Flatworm Mitochondrial',                                         # 9
-        'Euplotid Nuclear',                                                              # 10
-        'Bacterial, Archaeal and Plant Plastid',                                         # 11
-        'Alternative Yeast Nuclear',                                                     # 12
-        'Ascidian Mitochondrial',                                                        # 13
-        'Alternative Flatworm Mitochondrial',                                            # 14
-        'Blepharisma Nuclear',                                                           # 15
-        'Chlorophycean Mitochondrial',                                                   # 16
-        '', '', '', '',
-        'Trematode Mitochondrial',    # 21
-                                      #'Scenedesmus obliquus Mitochondrial',             # 22
-                                      #'Thraustochytrium Mitochondrial'                  # 23
+        'Standard',                      # 1
+        'Vertebrate Mitochondrial',      # 2
+        'Yeast Mitochondrial',           # 3
+        '',
+        'Invertebrate Mitochondrial',    # 5
+        '', '', '', '', '',
+        'Bacterial, Archaeal and Plant Plastid',    # 11
         );
 
     for ( 0 .. $#NAMES ) {
@@ -49,24 +34,23 @@ BEGIN {
     print "\n";
 }
 
-# wrong codon table id
-{
+{    # wrong codon table id
 
-    # not a number
-    {
+    {    # not a number
         my @ids = qw{ a b c };
         for my $table_id (@ids) {
-            eval { my $codon_obj = AlignDB::Codon->new( table_id => $table_id ); };
+            eval { AlignDB::Codon->new( table_id => $table_id ); };
             ok( $@ =~ /Int/, "not a number" );
         }
     }
 
-    # out of range
-    {
+    {    # out of range
         my @ids = qw{ 55 100 };
         for my $table_id (@ids) {
-            eval { my $codon_obj = AlignDB::Codon->new( table_id => $table_id ); };
+            eval { AlignDB::Codon->new( table_id => $table_id ); };
             ok( $@ =~ /range/, "out of range" );
         }
     }
 }
+
+done_testing();

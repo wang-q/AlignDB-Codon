@@ -5,7 +5,10 @@ AlignDB::Codon - translate sequences and calculate Dn/Ds
 
 # DESCRIPTION
 
-AlignDB::Codon provides methods to translate sequences and calculate Dn/Ds with different codon tables.
+AlignDB::Codon provides methods to translate sequences and calculate Dn/Ds with different codon
+tables.
+
+Some parts of this module are extracted from BioPerl to avoid the huge number of its dependencies.
 
 # ATTRIBUTES
 
@@ -57,18 +60,6 @@ Change used codon table and recalc all attributes.
 
 Codon table id should be in range of 1-6,9-16,21.
 
-## convert\_123
-
-    my $three_format = $obj->convert_123('ARN');
-
-Convert aa code from one-letter to three-letter
-
-## convert\_321
-
-    my $one_format = $obj->convert_321('AlaArgAsn');
-
-Convert aa code from three-letter to one-letter
-
 ## comp\_codons
 
     my ($syn, $nsy) = $obj->comp_codons('TTT', 'GTA');
@@ -91,11 +82,17 @@ Returns true for codons that can be used as a translation start, false for other
 
 Returns true for codons that can be used as a translation terminator, false for others.
 
-## is\_unknown\_codon
+## convert\_123
 
-    my $bool = $obj->is_unknown_codon('GAJ')
+    my $three_format = $obj->convert_123('ARN');
 
-Returns true (1) for codons that are valid, true (1) for others.
+Convert aa code from one-letter to three-letter
+
+## convert\_321
+
+    my $one_format = $obj->convert_321('AlaArgAsn');
+
+Convert aa code from three-letter to one-letter
 
 # AUTHOR
 

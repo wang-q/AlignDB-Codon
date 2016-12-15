@@ -3,122 +3,43 @@ use Moose;
 use Carp;
 
 use AlignDB::IntSpan;
-use Bio::Tools::CodonTable;
 use List::MoreUtils::PP;
 use YAML::Syck;
 
 our $VERSION = '1.0.0';
 
-has 'one2three'   => ( is => 'ro', isa => 'HashRef', );
-has 'three2one'   => ( is => 'ro', isa => 'HashRef', );
-has 'codons'      => ( is => 'ro', isa => 'ArrayRef', );
-has 'codon2aa'    => ( is => 'ro', isa => 'HashRef', );
-has 'table_id'    => ( is => 'ro', isa => 'Int', default => 1, );
-has 'table_name'  => ( is => 'ro', isa => 'Str', );
-has 'codon_table' => ( is => 'ro', isa => 'Object', );
+# codon tables
+has 'table_id' => ( is => 'ro', isa => 'Int', default => sub {1}, );
+has 'table_name'    => ( is => 'ro', isa => 'Str', );
+has 'table_content' => ( is => 'ro', isa => 'Str', );
+has 'table_starts'  => ( is => 'ro', isa => 'Str', );
+
+# codons
+has 'codons'    => ( is => 'ro', isa => 'ArrayRef', );
+has 'codon_idx' => ( is => 'ro', isa => 'HashRef', );
+has 'codon2aa'  => ( is => 'ro', isa => 'HashRef', );
+
 has 'syn_sites'   => ( is => 'ro', isa => 'HashRef', );
 has 'syn_changes' => ( is => 'ro', isa => 'HashRef', );
+
+# One <=> Three
+has 'one2three' => ( is => 'ro', isa => 'HashRef', );
+has 'three2one' => ( is => 'ro', isa => 'HashRef', );
 
 sub BUILD {
     my $self = shift;
 
-    # Load aa code
-    my ( $one2three, $three2one ) = $self->_load_aa_code();
-    $self->{one2three} = $one2three;
-    $self->{three2one} = $three2one;
-
-    my @codons = $self->_make_codons();
-    $self->{codons} = \@codons;
-
-    $self->change_codon_table( $self->table_id );
+    $self->_make_codons;
+    $self->change_codon_table( $self->{table_id} );
+    $self->_load_aa_code;
 
     return;
-}
-
-sub _load_aa_code {
-    my $self = shift;
-
-    my %one2three = (
-        A   => 'Ala',    # Alanine
-        R   => 'Arg',    # Arginine
-        N   => 'Asn',    # Asparagine
-        D   => 'Asp',    # Aspartic acid
-        C   => 'Cys',    # Cysteine
-        Q   => 'Gln',    # Glutamine
-        E   => 'Glu',    # Glutamic acid
-        G   => 'Gly',    # Glycine
-        H   => 'His',    # Histidine
-        I   => 'Ile',    # Isoleucine
-        L   => 'Leu',    # Leucine
-        K   => 'Lys',    # Lysine
-        M   => 'Met',    # Methionine
-        F   => 'Phe',    # Phenylalanine
-        P   => 'Pro',    # Proline
-        S   => 'Ser',    # Serine
-        T   => 'Thr',    # Threonine
-        W   => 'Trp',    # Tryptophan
-        Y   => 'Tyr',    # Tyrosine
-        V   => 'Val',    # Valine
-        B   => 'Asx',    # Aspartic acid or Asparagine
-        Z   => 'Glx',    # Glutamine or Glutamic acid
-        X   => 'Xaa',    # Any or unknown amino acid
-        '*' => '***',    # Stop codon
-    );
-    my %three2one = reverse(%one2three);
-
-    return ( \%one2three, \%three2one );
-}
-
-sub change_codon_table {
-    my $self = shift;
-    my $id   = shift;
-
-    # all codon table ids in Bio::Tools::CodonTable,
-    # except the following two
-    # 	 'Scenedesmus obliquus Mitochondrial', #22
-    #    'Thraustochytrium Mitochondrial' #23
-    my $id_set = AlignDB::IntSpan->new("1-6,9-16,21");
-
-    if ( not defined $id ) {
-        Carp::confess "codon table id is not defined\n";
-    }
-    elsif ( $id_set->contains($id) ) {
-        my $codon_table = Bio::Tools::CodonTable->new( -id => $id );
-
-        $self->{table_id}    = $id;
-        $self->{codon_table} = $codon_table;
-        $self->{table_name}  = $codon_table->name();
-
-        $self->{codon2aa}    = $self->_codon2aa();
-        $self->{syn_sites}   = $self->_syn_sites();
-        $self->{syn_changes} = $self->_syn_changes();
-    }
-    else {
-        confess "codon table id should be in range of $id_set\n";
-    }
-
-    return;
-}
-
-sub _codon2aa {
-    my $self = shift;
-
-    my $codons      = $self->codons();
-    my $codon_table = $self->codon_table();
-
-    my %codon2aa;
-    foreach my $codon (@$codons) {
-        my $aa = $codon_table->translate_strict($codon);
-        $codon2aa{$codon} = $aa;
-    }
-
-    return \%codon2aa;
 }
 
 sub _make_codons {
     my $self = shift;
 
-    # makes all codon combinations, returns array of them
+    # makes all codon combinations
     my @nucs = qw(T C A G);
     my @codons;
     for my $i (@nucs) {
@@ -128,60 +49,188 @@ sub _make_codons {
             }
         }
     }
+    $self->{codons} = \@codons;
 
-    return @codons;
-}
-
-sub convert_123 {
-    my $self    = shift;
-    my $peptide = shift;
-
-    $peptide = uc $peptide;
-    my $three_of = $self->one2three();
-
-    my $converted;
-    for my $pos ( 0 .. length($peptide) - 1 ) {
-        my $aa_code = substr( $peptide, $pos, 1 );
-        if ( $three_of->{$aa_code} ) {
-            $converted .= $three_of->{$aa_code};
-        }
-        else {
-            warn "Wrong single-letter amino acid code [$aa_code]!\n";
-            $converted .= ' ' x 3;
-        }
+    my %codon_idx;
+    for my $i ( 0 .. $#codons ) {
+        $codon_idx{ $codons[$i] } = $i;
     }
-    return $converted;
+    $self->{codon_idx} = \%codon_idx;
+
+    return;
 }
 
-sub convert_321 {
-    my $self    = shift;
-    my $peptide = shift;
+sub change_codon_table {
+    my $self = shift;
+    my $id   = shift;
 
-    $peptide = lc $peptide;
-    my $one_of = $self->three2one();
+    my @NAMES = (    #id
+        'Strict',                      # 0, special option for ATG-only start
+        'Standard',                    # 1
+        'Vertebrate Mitochondrial',    # 2
+        'Yeast Mitochondrial',         # 3
+        'Mold, Protozoan, and Coelenterate Mitochondrial and Mycoplasma/Spiroplasma',    # 4
+        'Invertebrate Mitochondrial',                                                    # 5
+        'Ciliate, Dasycladacean and Hexamita Nuclear',                                   # 6
+        '', '',
+        'Echinoderm and Flatworm Mitochondrial',                                         # 9
+        'Euplotid Nuclear',                                                              # 10
+        'Bacterial, Archaeal and Plant Plastid',                                         # 11
+        'Alternative Yeast Nuclear',                                                     # 12
+        'Ascidian Mitochondrial',                                                        # 13
+        'Alternative Flatworm Mitochondrial',                                            # 14
+        'Blepharisma Nuclear',                                                           # 15
+        'Chlorophycean Mitochondrial',                                                   # 16
+        '', '', '', '',
+        'Trematode Mitochondrial',                                                       # 21
+        'Scenedesmus obliquus Mitochondrial',                                            # 22
+        'Thraustochytrium Mitochondrial',                                                # 23
+        'Pterobranchia Mitochondrial',                                                   # 24
+        'Candidate Division SR1 and Gracilibacteria',                                    # 25
+    );
 
-    my $converted;
-    for ( my $pos = 0; $pos < length($peptide); $pos += 3 ) {
-        my $aa_code = substr( $peptide, $pos, 3 );
-        $aa_code = ucfirst $aa_code;
-        if ( $one_of->{$aa_code} ) {
-            $converted .= $one_of->{$aa_code};
-        }
-        else {
-            warn "Wrong three-letter amino acid code [$aa_code]!\n";
-            $converted .= ' ' x 3;
-        }
+    my @TABLES = qw(
+        FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCWWTTTTPPPPHHQQRRRRIIMMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSSSVVVVAAAADDEEGGGG
+        FFLLSSSSYYQQCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        '' ''
+        FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCCWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CC*WLLLSPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSGGVVVVAAAADDEEGGGG
+        FFLLSSSSYYY*CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG
+        FFLLSSSSYY*QCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        '' '' '' ''
+        FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNNKSSSSVVVVAAAADDEEGGGG
+        FFLLSS*SYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FF*LSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG
+        FFLLSSSSYY**CCGWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG
+    );
 
+    my @STARTS = qw(
+        -----------------------------------M----------------------------
+        ---M---------------M---------------M----------------------------
+        --------------------------------MMMM---------------M------------
+        ----------------------------------MM----------------------------
+        --MM---------------M------------MMMM---------------M------------
+        ---M----------------------------MMMM---------------M------------
+        -----------------------------------M----------------------------
+        '' ''
+        -----------------------------------M---------------M------------
+        -----------------------------------M----------------------------
+        ---M---------------M------------MMMM---------------M------------
+        -------------------M---------------M----------------------------
+        ---M------------------------------MM---------------M------------
+        -----------------------------------M----------------------------
+        -----------------------------------M----------------------------
+        -----------------------------------M----------------------------
+        '' ''  '' ''
+        -----------------------------------M---------------M------------
+        -----------------------------------M----------------------------
+        --------------------------------M--M---------------M------------
+        ---M---------------M---------------M---------------M------------
+        ---M-------------------------------M---------------M------------
+    );
+
+    my $id_set = AlignDB::IntSpan->new("1-6,9-16,21");
+
+    if ( not defined $id ) {
+        Carp::confess "codon table id is not defined\n";
+    }
+    elsif ( $id_set->contains($id) ) {
+        $self->{table_id} = $id;
+
+        $self->{table_name}    = $NAMES[$id];
+        $self->{table_content} = $TABLES[$id];
+        $self->{table_starts}  = $STARTS[$id];
+
+        $self->_make_codon2aa;
+        $self->_make_syn_sites;
+        $self->_make_syn_changes;
+    }
+    else {
+        Carp::confess "codon table id should be in range of $id_set\n";
     }
 
-    return $converted;
+    return;
 }
 
-sub _syn_changes {
+sub _make_codon2aa {
     my $self = shift;
 
-    my $codons   = $self->codons();
-    my $codon2aa = $self->codon2aa();
+    my $table_content = $self->table_content;
+    my $codons        = $self->codons;
+    my $codon_idx     = $self->codon_idx;
+
+    my %codon2aa;
+    for my $codon ( @{$codons} ) {
+        my $aa = substr( $table_content, $codon_idx->{$codon}, 1 );
+        $codon2aa{$codon} = $aa;
+    }
+
+    # gaps in cDNA
+    $codon2aa{"---"} = "-";
+
+    $self->{codon2aa} = \%codon2aa;
+
+    return;
+}
+
+sub _make_syn_sites {
+    my $self = shift;
+
+    my $codons   = $self->codons;
+    my $codon2aa = $self->codon2aa;
+
+    my %raw_results;
+    for my $cod (@$codons) {
+        my $aa = $codon2aa->{$cod};
+
+        # calculate number of synonymous mutations vs non-syn mutations
+        for my $i ( 0 .. 2 ) {
+            my $s = 0;
+            my $n = 3;
+            for my $nuc (qw(A T C G)) {
+                next if substr( $cod, $i, 1 ) eq $nuc;
+                my $test = $cod;
+                substr( $test, $i, 1, $nuc );
+                if ( $codon2aa->{$test} eq $aa ) {
+                    $s++;
+                }
+                if ( $codon2aa->{$test} eq '*' ) {
+                    $n--;
+                }
+            }
+            $raw_results{$cod}[$i] = {
+                's' => $s,
+                'n' => $n
+            };
+        }
+    }
+
+    my %final_results;
+    for my $cod ( sort keys %raw_results ) {
+        my $t = 0;
+        map { $t += ( $_->{'s'} / $_->{'n'} ) } @{ $raw_results{$cod} };
+        $final_results{$cod} = { 's' => $t, 'n' => 3 - $t };
+    }
+
+    $self->{syn_sites} = \%final_results;
+    return;
+}
+
+sub _make_syn_changes {
+    my $self = shift;
+
+    my $codons   = $self->codons;
+    my $codon2aa = $self->codon2aa;
 
     my $arr_len = scalar @$codons;
 
@@ -218,49 +267,8 @@ sub _syn_changes {
         }
     }
 
-    return \%results;
-}
-
-sub _syn_sites {
-    my $self = shift;
-
-    my $codons   = $self->codons();
-    my $codon2aa = $self->codon2aa();
-
-    my %raw_results;
-    for my $cod (@$codons) {
-        my $aa = $codon2aa->{$cod};
-
-        # calculate number of synonymous mutations vs non-syn mutations
-        for my $i ( 0 .. 2 ) {
-            my $s = 0;
-            my $n = 3;
-            for my $nuc (qw(A T C G)) {
-                next if substr( $cod, $i, 1 ) eq $nuc;
-                my $test = $cod;
-                substr( $test, $i, 1, $nuc );
-                if ( $codon2aa->{$test} eq $aa ) {
-                    $s++;
-                }
-                if ( $codon2aa->{$test} eq '*' ) {
-                    $n--;
-                }
-            }
-            $raw_results{$cod}[$i] = {
-                's' => $s,
-                'n' => $n
-            };
-        }
-    }
-
-    my %final_results;
-    for my $cod ( sort keys %raw_results ) {
-        my $t = 0;
-        map { $t += ( $_->{'s'} / $_->{'n'} ) } @{ $raw_results{$cod} };
-        $final_results{$cod} = { 's' => $t, 'n' => 3 - $t };
-    }
-
-    return \%final_results;
+    $self->{syn_changes} = \%results;
+    return;
 }
 
 sub comp_codons {
@@ -269,8 +277,8 @@ sub comp_codons {
     my $cod2 = shift;
     my $pos  = shift;
 
-    my $syn_changes = $self->syn_changes();
-    my $codon2aa    = $self->codon2aa();
+    my $syn_changes = $self->syn_changes;
+    my $codon2aa    = $self->codon2aa;
 
     my $syn_cnt = 0;    # total synonymous changes
     my $nsy_cnt = 0;    # total non-synonymous changes
@@ -452,10 +460,18 @@ sub translate {
     my $offset = length($seq) - ( length($seq) % 3 );
     substr( $seq, $offset, length($seq), '' );    # now $seq is 3n bp
 
-    my $codon_table = $self->codon_table();
-
-    my $peptide = $codon_table->translate($seq);
-
+    my $peptide    = "";
+    my $codon2aa   = $self->codon2aa;
+    my $codon_size = 3;
+    for ( my $i = 0; $i < ( length($seq) - ( $codon_size - 1 ) ); $i += $codon_size ) {
+        my $triplet = substr( $seq, $i, $codon_size );
+        if ( exists $codon2aa->{$triplet} ) {
+            $peptide .= $codon2aa->{$triplet};
+        }
+        else {
+            $peptide .= 'X';
+        }
+    }
     return $peptide;
 }
 
@@ -463,33 +479,111 @@ sub is_start_codon {
     my $self = shift;
     my $cod  = shift;
 
-    my $codon_table = $self->codon_table();
+    my $table_starts = $self->table_starts;
+    my $codon_idx    = $self->codon_idx;
 
-    return $codon_table->is_start_codon($cod);
+    my $aa = substr( $table_starts, $codon_idx->{$cod}, 1 );
+
+    return $aa eq "M";
 }
 
 sub is_ter_codon {
     my $self = shift;
     my $cod  = shift;
 
-    my $codon_table = $self->codon_table();
+    my $table_content = $self->table_content;
+    my $codon_idx     = $self->codon_idx;
 
-    return $codon_table->is_ter_codon($cod);
+    my $aa = substr( $table_content, $codon_idx->{$cod}, 1 );
+
+    return $aa eq "*";
 }
 
-sub is_unknown_codon {
+sub _load_aa_code {
     my $self = shift;
-    my $cod  = shift;
 
-    my $codon_table = $self->codon_table();
+    my %one2three = (
+        A   => 'Ala',    # Alanine
+        R   => 'Arg',    # Arginine
+        N   => 'Asn',    # Asparagine
+        D   => 'Asp',    # Aspartic acid
+        C   => 'Cys',    # Cysteine
+        Q   => 'Gln',    # Glutamine
+        E   => 'Glu',    # Glutamic acid
+        G   => 'Gly',    # Glycine
+        H   => 'His',    # Histidine
+        I   => 'Ile',    # Isoleucine
+        L   => 'Leu',    # Leucine
+        K   => 'Lys',    # Lysine
+        M   => 'Met',    # Methionine
+        F   => 'Phe',    # Phenylalanine
+        P   => 'Pro',    # Proline
+        S   => 'Ser',    # Serine
+        T   => 'Thr',    # Threonine
+        W   => 'Trp',    # Tryptophan
+        Y   => 'Tyr',    # Tyrosine
+        V   => 'Val',    # Valine
+        B   => 'Asx',    # Aspartic acid or Asparagine
+        Z   => 'Glx',    # Glutamine or Glutamic acid
+        X   => 'Xaa',    # Any or unknown amino acid
+        '*' => '***',    # Stop codon
+    );
+    my %three2one = reverse(%one2three);
 
-    return $codon_table->is_unknown_codon($cod);
+    $self->{one2three} = \%one2three;
+    $self->{three2one} = \%three2one;
+
+    return;
+}
+
+sub convert_123 {
+    my $self    = shift;
+    my $peptide = shift;
+
+    $peptide = uc $peptide;
+    my $three_of = $self->one2three;
+
+    my $converted;
+    for my $pos ( 0 .. length($peptide) - 1 ) {
+        my $aa_code = substr( $peptide, $pos, 1 );
+        if ( $three_of->{$aa_code} ) {
+            $converted .= $three_of->{$aa_code};
+        }
+        else {
+            Carp::confess "Wrong single-letter amino acid code [$aa_code]!\n";
+            $converted .= ' ' x 3;
+        }
+    }
+    return $converted;
+}
+
+sub convert_321 {
+    my $self    = shift;
+    my $peptide = shift;
+
+    $peptide = lc $peptide;
+    my $one_of = $self->three2one;
+
+    my $converted;
+    for ( my $pos = 0; $pos < length($peptide); $pos += 3 ) {
+        my $aa_code = substr( $peptide, $pos, 3 );
+        $aa_code = ucfirst $aa_code;
+        if ( $one_of->{$aa_code} ) {
+            $converted .= $one_of->{$aa_code};
+        }
+        else {
+            warn "Wrong three-letter amino acid code [$aa_code]!\n";
+            $converted .= ' ' x 3;
+        }
+
+    }
+
+    return $converted;
 }
 
 1;    # Magic true value required at end of module
 
 __END__
-
 
 =pod
 
@@ -501,7 +595,10 @@ AlignDB::Codon - translate sequences and calculate Dn/Ds
 
 =head1 DESCRIPTION
 
-AlignDB::Codon provides methods to translate sequences and calculate Dn/Ds with different codon tables.
+AlignDB::Codon provides methods to translate sequences and calculate Dn/Ds with different codon
+tables.
+
+Some parts of this module are extracted from BioPerl to avoid the huge number of its dependencies.
 
 =head1 ATTRIBUTES
 
@@ -553,18 +650,6 @@ Change used codon table and recalc all attributes.
 
 Codon table id should be in range of 1-6,9-16,21.
 
-=head2 convert_123
-
-    my $three_format = $obj->convert_123('ARN');
-
-Convert aa code from one-letter to three-letter
-
-=head2 convert_321
-
-    my $one_format = $obj->convert_321('AlaArgAsn');
-
-Convert aa code from three-letter to one-letter
-
 =head2 comp_codons
 
     my ($syn, $nsy) = $obj->comp_codons('TTT', 'GTA');
@@ -587,11 +672,17 @@ Returns true for codons that can be used as a translation start, false for other
 
 Returns true for codons that can be used as a translation terminator, false for others.
 
-=head2 is_unknown_codon
+=head2 convert_123
 
-    my $bool = $obj->is_unknown_codon('GAJ')
+    my $three_format = $obj->convert_123('ARN');
 
-Returns true (1) for codons that are valid, true (1) for others.
+Convert aa code from one-letter to three-letter
+
+=head2 convert_321
+
+    my $one_format = $obj->convert_321('AlaArgAsn');
+
+Convert aa code from three-letter to one-letter
 
 =head1 AUTHOR
 
