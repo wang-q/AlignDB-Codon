@@ -2,6 +2,11 @@ Revision history for AlignDB-Codon
 
 {{$NEXT}}
 
+1.1.0 2016-12-15T16:24:28Z
+    - Remove dependency on Bio::Tools::CodonTable
+    - Improve test coverage
+    - Switch to Minilla
+
 1.0.0  2016-01-15 15:32:00 CST
     - Switch to Dist::Milla
 

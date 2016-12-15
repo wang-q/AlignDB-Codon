@@ -10,46 +10,6 @@ tables.
 
 Some parts of this module are extracted from BioPerl to avoid the huge number of its dependencies.
 
-# ATTRIBUTES
-
-## one2three
-
-lookup hash for one-letter aa names to three-letter ones, isa HashRef
-
-## three2one
-
-lookup hash for three-letter aa names to one-letter ones, isa HashRef
-
-## codons
-
-all codons, isa ArrayRef
-
-## codon2aa
-
-lookup hash for codons to aa, isa HashRef
-
-## table\_id
-
-codon table id, in Bio::Tools::CodonTable
-
-## table\_name
-
-codon table name, in Bio::Tools::CodonTable
-
-## codon\_table
-
-isa Bio::Tools::CodonTable Object
-
-## syn\_sites
-
-lookup hash for the number of synonymous changes per codon, isa HashRef
-
-## syn\_changes
-
-lookup hash of all pairwise combinations of codons differing by 1
-1 = synonymous, 0 = non-synonymous, -1 = stop,
-isa HashRef
-
 # METHODS
 
 ## change\_codon\_table

@@ -6,7 +6,7 @@ use AlignDB::IntSpan;
 use List::MoreUtils::PP;
 use YAML::Syck;
 
-our $VERSION = '1.0.0';
+our $VERSION = '1.1.0';
 
 # codon tables
 has 'table_id' => ( is => 'ro', isa => 'Int', default => sub {1}, );
@@ -19,7 +19,11 @@ has 'codons'    => ( is => 'ro', isa => 'ArrayRef', );
 has 'codon_idx' => ( is => 'ro', isa => 'HashRef', );
 has 'codon2aa'  => ( is => 'ro', isa => 'HashRef', );
 
-has 'syn_sites'   => ( is => 'ro', isa => 'HashRef', );
+# lookup hash for the number of synonymous changes per codon
+has 'syn_sites' => ( is => 'ro', isa => 'HashRef', );
+
+# lookup hash of all pairwise combinations of codons differing by 1
+#    1 = synonymous, 0 = non-synonymous, -1 = stop
 has 'syn_changes' => ( is => 'ro', isa => 'HashRef', );
 
 # One <=> Three
@@ -615,46 +619,6 @@ AlignDB::Codon provides methods to translate sequences and calculate Dn/Ds with 
 tables.
 
 Some parts of this module are extracted from BioPerl to avoid the huge number of its dependencies.
-
-=head1 ATTRIBUTES
-
-=head2 one2three
-
-lookup hash for one-letter aa names to three-letter ones, isa HashRef
-
-=head2 three2one
-
-lookup hash for three-letter aa names to one-letter ones, isa HashRef
-
-=head2 codons
-
-all codons, isa ArrayRef
-
-=head2 codon2aa
-
-lookup hash for codons to aa, isa HashRef
-
-=head2 table_id
-
-codon table id, in Bio::Tools::CodonTable
-
-=head2 table_name
-
-codon table name, in Bio::Tools::CodonTable
-
-=head2 codon_table
-
-isa Bio::Tools::CodonTable Object
-
-=head2 syn_sites
-
-lookup hash for the number of synonymous changes per codon, isa HashRef
-
-=head2 syn_changes
-
-lookup hash of all pairwise combinations of codons differing by 1
-1 = synonymous, 0 = non-synonymous, -1 = stop,
-isa HashRef
 
 =head1 METHODS
 
