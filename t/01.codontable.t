@@ -39,7 +39,7 @@ use AlignDB::Codon;
         my @ids = qw{ a b c };
         for my $table_id (@ids) {
             eval { AlignDB::Codon->new( table_id => $table_id ); };
-            ok( $@ =~ /Int/, "not a number" );
+            like( $@, qr{Int}, "not a number" );
         }
     }
 
@@ -47,7 +47,15 @@ use AlignDB::Codon;
         my @ids = qw{ 55 100 };
         for my $table_id (@ids) {
             eval { AlignDB::Codon->new( table_id => $table_id ); };
-            ok( $@ =~ /range/, "out of range" );
+            like( $@, qr{range}, "out of range" );
+        }
+    }
+
+    {    # not defined
+        my @ids = (undef);
+        for my $table_id (@ids) {
+            eval { AlignDB::Codon->new->change_codon_table($table_id); };
+            like( $@, qr{not defined}, "not defined" );
         }
     }
 }
