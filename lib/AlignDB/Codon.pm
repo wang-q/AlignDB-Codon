@@ -456,7 +456,9 @@ sub translate {
         $frame = 0;
     }
 
-    $seq = substr( $seq, $frame );    # delete first $frame bases from $seq
+    if ( $frame != 0 ) {
+        $seq = substr( $seq, $frame );    # delete first $frame bases from $seq
+    }
     my $offset = length($seq) - ( length($seq) % 3 );
     substr( $seq, $offset, length($seq), '' );    # now $seq is 3n bp
 
@@ -479,24 +481,38 @@ sub is_start_codon {
     my $self = shift;
     my $cod  = shift;
 
+    $cod = uc $cod;
+    $cod =~ tr/U/T/;
+
     my $table_starts = $self->table_starts;
     my $codon_idx    = $self->codon_idx;
 
-    my $aa = substr( $table_starts, $codon_idx->{$cod}, 1 );
-
-    return $aa eq "M";
+    if ( exists $codon_idx->{$cod} ) {
+        my $aa = substr( $table_starts, $codon_idx->{$cod}, 1 );
+        return $aa eq "M" ? 1 : 0;
+    }
+    else {
+        return 0;
+    }
 }
 
 sub is_ter_codon {
     my $self = shift;
     my $cod  = shift;
 
+    $cod = uc $cod;
+    $cod =~ tr/U/T/;
+
     my $table_content = $self->table_content;
     my $codon_idx     = $self->codon_idx;
 
-    my $aa = substr( $table_content, $codon_idx->{$cod}, 1 );
-
-    return $aa eq "*";
+    if ( exists $codon_idx->{$cod} ) {
+        my $aa = substr( $table_content, $codon_idx->{$cod}, 1 );
+        return $aa eq "*" ? 1 : 0;
+    }
+    else {
+        return 0;
+    }
 }
 
 sub _load_aa_code {
