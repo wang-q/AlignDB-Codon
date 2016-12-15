@@ -1,4 +1,3 @@
-#!/usr/bin/perl
 use strict;
 use warnings;
 
@@ -27,8 +26,8 @@ use AlignDB::Codon;
         my $codon_obj = AlignDB::Codon->new( table_id => $table_id );
         ok( defined $codon_obj,                "Init object $table_id" );
         ok( $codon_obj->isa('AlignDB::Codon'), "ISA $table_id" );
-        is( $codon_obj->table_id(),   $table_id,   "table_id $table_id" );
-        is( $codon_obj->table_name(), $table_name, "table_name $table_id" );
+        is( $codon_obj->table_id,   $table_id,   "table_id $table_id" );
+        is( $codon_obj->table_name, $table_name, "table_name $table_id" );
     }
 
     print "\n";

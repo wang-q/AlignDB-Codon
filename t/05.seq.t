@@ -1,15 +1,11 @@
-#!/usr/bin/perl
 use strict;
 use warnings;
 
-use Test::More qw(no_plan);
+use Test::More;
 
-BEGIN {
-    use_ok('AlignDB::Codon');
-}
+use AlignDB::Codon;
 
-# compare normal codons
-{
+{    # compare normal codons
     my $codon_obj = AlignDB::Codon->new( table_id => 1 );
 
     #    my $seq1 = <<ENDLINE;
@@ -23,10 +19,8 @@ BEGIN {
     #GGCTC-AGGGCAGGGCACCTG-CCTTCAGC-GGCCTCAGC-CTGCCTGTCTCCCA
     #ENDLINE
 
-    my @compare = (
-        [qw{ TTT TTA }], [qw{ TTT TTC }], [qw{ TTT GTA }], [qw{ TTT GTG }],
-        [qw{ TTG AGA }],
-    );
+    my @compare
+        = ( [qw{ TTT TTA }], [qw{ TTT TTC }], [qw{ TTT GTA }], [qw{ TTT GTG }], [qw{ TTG AGA }], );
 
     my @expect
         = ( [ 0, 1 ], [ 1, 0 ], [ 0.5, 1.5 ], [ 0.5, 1.5 ], [ 0.75, 2.25 ], );
@@ -40,15 +34,12 @@ BEGIN {
     }
 }
 
-# compare normal codons
-{
+{    # compare normal codons
     my $codon_obj = AlignDB::Codon->new( table_id => 1 );
 
     my @compare = (
-        [qw{ TTT TTA 2 }], [qw{ TTT TTA 0 }],
-        [qw{ TTT TTC 2 }], [qw{ TTT TTC 1 }],
-        [qw{ TTT GTA 0 }], [qw{ TTT GTA 1 }],
-        [qw{ TTT GTA 2 }], [qw{ TTG AGA 0 }],
+        [qw{ TTT TTA 2 }], [qw{ TTT TTA 0 }], [qw{ TTT TTC 2 }], [qw{ TTT TTC 1 }],
+        [qw{ TTT GTA 0 }], [qw{ TTT GTA 1 }], [qw{ TTT GTA 2 }], [qw{ TTG AGA 0 }],
         [qw{ TTG AGA 1 }], [qw{ TTG AGA 2 }],
     );
 
@@ -75,3 +66,5 @@ BEGIN {
     }
 
 }
+
+done_testing();

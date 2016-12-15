@@ -1,12 +1,9 @@
-#!/usr/bin/perl
 use strict;
 use warnings;
 
-use Test::More tests => 577;
+use Test::More;
 
-BEGIN {
-    use_ok('AlignDB::Codon');
-}
+use AlignDB::Codon;
 
 {
     # all synonymous codons
@@ -35,7 +32,7 @@ BEGIN {
     );
 
     my $codon_obj = AlignDB::Codon->new( table_id => 1 );
-    my $syn_changes = $codon_obj->syn_changes();
+    my $syn_changes = $codon_obj->syn_changes;
 
     # check all synonymous changes
     for my $syn (@syn_codons) {
@@ -67,3 +64,5 @@ BEGIN {
         }
     }
 }
+
+done_testing();
