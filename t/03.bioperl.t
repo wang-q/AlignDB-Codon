@@ -4,26 +4,20 @@ use warnings;
 use Test::More;
 
 use AlignDB::Codon;
-use Bio::Align::DNAStatistics;
 
-{    # syn_sites
+SKIP: {
+    eval { require Bio::Align::DNAStatistics };
+
+    skip "Bio::Align::DNAStatistics not installed", 2 if $@;
+
+    # syn_sites
     my $codon_obj = AlignDB::Codon->new( table_id => 1 );
     my $comp_obj = Bio::Align::DNAStatistics->new;
 
-    my $result1 = $codon_obj->syn_sites;
-    my $result2 = $comp_obj->get_syn_sites;
+    is_deeply( $codon_obj->syn_sites, $comp_obj->get_syn_sites, "syn_sites" );
 
-    is_deeply( $result1, $result2, "syn_sites" );
+    # syn_changes
+    is_deeply( $codon_obj->syn_changes, { $comp_obj->get_syn_changes }, "syn_changes" );
 }
 
-{    # syn_changes
-    my $codon_obj = AlignDB::Codon->new( table_id => 1 );
-    my $comp_obj = Bio::Align::DNAStatistics->new;
-
-    my $result1 = $codon_obj->syn_changes;
-    my %result2 = $comp_obj->get_syn_changes;
-
-    is_deeply( $result1, \%result2, "syn_changes" );
-}
-
-done_testing();
+done_testing(2);

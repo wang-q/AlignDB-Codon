@@ -50,8 +50,10 @@
          }
       },
       "test" : {
+         "recommends" : {
+            "Bio::Align::DNAStatistics" : "0"
+         },
          "requires" : {
-            "Bio::Align::DNAStatistics" : "0",
             "Test::More" : "0.88"
          }
       }
