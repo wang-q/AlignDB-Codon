@@ -6,7 +6,7 @@ use AlignDB::IntSpan;
 use List::MoreUtils::PP;
 use YAML::Syck;
 
-our $VERSION = '1.1.0';
+our $VERSION = '1.1.1';
 
 # codon tables
 has 'table_id' => ( is => 'ro', isa => 'Int', default => sub {1}, );
