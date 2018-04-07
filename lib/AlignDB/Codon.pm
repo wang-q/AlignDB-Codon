@@ -1,15 +1,15 @@
 package AlignDB::Codon;
 use Moose;
-use Carp;
+use Carp qw();
 
 use AlignDB::IntSpan;
-use List::MoreUtils::PP;
-use YAML::Syck;
+use List::MoreUtils::PP qw();
+use YAML::Syck qw();
 
 our $VERSION = '1.1.1';
 
 # codon tables
-has 'table_id' => ( is => 'ro', isa => 'Int', default => sub {1}, );
+has 'table_id'      => ( is => 'ro', isa => 'Int', default => sub {1}, );
 has 'table_name'    => ( is => 'ro', isa => 'Str', );
 has 'table_content' => ( is => 'ro', isa => 'Str', );
 has 'table_starts'  => ( is => 'ro', isa => 'Str', );
@@ -190,20 +190,20 @@ sub _make_codon2aa {
 sub _make_syn_sites {
     my $self = shift;
 
-    my $codons   = $self->codons;
+    my @codons   = @{ $self->codons };
     my $codon2aa = $self->codon2aa;
 
     my %raw_results;
-    for my $cod (@$codons) {
-        my $aa = $codon2aa->{$cod};
+    for my $codon (@codons) {
+        my $aa = $codon2aa->{$codon};
 
         # calculate number of synonymous mutations vs non-syn mutations
         for my $i ( 0 .. 2 ) {
             my $s = 0;
             my $n = 3;
             for my $nuc (qw(A T C G)) {
-                next if substr( $cod, $i, 1 ) eq $nuc;
-                my $test = $cod;
+                next if substr( $codon, $i, 1 ) eq $nuc;
+                my $test = $codon;
                 substr( $test, $i, 1, $nuc );
                 if ( $codon2aa->{$test} eq $aa ) {
                     $s++;
@@ -212,7 +212,7 @@ sub _make_syn_sites {
                     $n--;
                 }
             }
-            $raw_results{$cod}[$i] = {
+            $raw_results{$codon}[$i] = {
                 's' => $s,
                 'n' => $n
             };

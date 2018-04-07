@@ -56,7 +56,7 @@ Convert aa code from three-letter to one-letter
 
 # AUTHOR
 
-Qiang Wang &lt;wang-q@outlook.com>
+Qiang Wang <wang-q@outlook.com>
 
 # COPYRIGHT AND LICENSE
 
