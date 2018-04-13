@@ -453,7 +453,7 @@ sub translate {
     # check $frame
     if ( defined $frame ) {
         if ( List::MoreUtils::PP::none { $_ == $frame } ( 0 .. 2 ) ) {
-            confess Dump( { frame => $frame } ), "Wrong frame\n";
+            Carp::confess YAML::Syck::Dump( { frame => $frame } ), "Wrong frame\n";
         }
     }
     else {
